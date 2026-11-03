@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUXURY CASINO - Redirect Ver.</title>
+    <title>개밥</title>
     <style>
         :root {
             --gold: #ffd700; --neon-blue: #00f3ff; --neon-pink: #ff0055;
@@ -49,6 +49,29 @@
         .btn-grey { background: #444; }
         .log-box { margin-top: 15px; min-height: 40px; color: #ccc; font-size: 0.9rem; border-top: 1px solid #333; padding-top: 10px; }
 
+        /* 3슬롯 룰렛 스타일 */
+        .slot-display {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            background: #000;
+            border-radius: 15px;
+            height: 100px;
+            margin: 20px 0;
+            border: 2px solid #333;
+            padding: 0 10px;
+        }
+        .slot-reel {
+            font-size: 3rem;
+            width: 30%;
+            height: 80px;
+            line-height: 80px;
+            background: #111;
+            border-radius: 10px;
+            border: 1px solid #333;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
         /* 블랙잭 전용 */
         .bj-area { margin: 15px 0; background: #0a2b16; padding: 15px; border-radius: 15px; border: 2px solid #1a5e35; }
         .card-row { display: flex; justify-content: center; gap: 8px; min-height: 80px; margin: 10px 0; }
@@ -58,7 +81,7 @@
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 30px; border-radius: 20px; border: 2px solid var(--neon-blue); z-index: 1000; width: 320px; text-align: center; box-sizing: border-box; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
         
-        /* 인증 모달용 스타일 추가 */
+        /* 인증 모달용 스타일 */
         .auth-input { width: 100%; margin-bottom: 10px; box-sizing: border-box; }
         .auth-toggle { font-size: 0.85rem; color: #aaa; margin-top: 10px; cursor: pointer; text-decoration: underline; }
     </style>
@@ -85,7 +108,7 @@
     </div>
 
     <div class="tab-menu">
-        <button id="tabSlot" class="tab-btn active" onclick="switchTab('slot')">🎰 SLOT</button>
+        <button id="tabSlot" class="tab-btn active" onclick="switchTab('slot')">🎰 3-SLOT</button>
         <button id="tabRace" class="tab-btn" onclick="switchTab('race')">🏎️ RACE</button>
         <button id="tabGun" class="tab-btn" onclick="switchTab('gun')">🔫 GUN</button>
         <button id="tabBj" class="tab-btn" onclick="switchTab('bj')">🃏 BJ</button>
@@ -122,14 +145,21 @@
         <button class="main-btn btn-grey" onclick="closeAllModals()">취소</button>
     </div>
 
+    <!-- 3슬롯 룰렛 게임 구역 -->
     <div id="slotGame" class="game-container active">
-        <div style="font-size: 4rem; margin: 20px 0; background:#000; border-radius:15px; height:100px; line-height:100px;" id="reelDisp">🎰</div>
+        <div class="slot-display">
+            <div class="slot-reel" id="reel1">🎰</div>
+            <div class="slot-reel" id="reel2">🎰</div>
+            <div class="slot-reel" id="reel3">🎰</div>
+        </div>
         <div class="input-group">
             <input type="number" id="slotBet" value="1000">
             <button class="all-in-btn" onclick="allIn('slotBet')">ALL</button>
         </div>
         <button class="main-btn btn-purple" id="slotBtn" onclick="playSlot()">SPIN</button>
-        <div class="log-box" id="slotLog">7(7배), 별(1.7배), 다이아(1.5배), 종(1.2배)</div>
+        <div class="log-box" id="slotLog">
+            777(50배), ⭐⭐⭐(20배), 💎💎💎(10배)<br>🔔🔔🔔(5배), 🍒🍒🍒(3배), 2개 일치(1.5배)
+        </div>
     </div>
 
     <div id="raceGame" class="game-container">
@@ -205,7 +235,7 @@
 
         let balance = 0; let highScore = 0; let isPlaying = false; 
         let currentUser = null; let isDataLoaded = false;
-        let isSignUpMode = false; // 이메일 인증 모드 (로그인 / 회원가입)
+        let isSignUpMode = false;
 
         function updateUI(sync = true) {
             document.getElementById('totalBalance').innerText = isDataLoaded ? balance.toLocaleString() : "---";
@@ -217,7 +247,6 @@
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
-                // 구글 로그인은 displayName이 있고, 이메일 로그인은 없을 수 있으므로 이메일 앞자리를 기본값으로 설정
                 document.getElementById('userName').innerText = user.displayName || user.email.split('@')[0];
                 document.getElementById('userPhoto').src = user.photoURL || "https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png";
                 document.getElementById('userPhoto').style.display = "block";
@@ -236,7 +265,6 @@
             }
         });
 
-        // 상단 로그인 버튼 클릭시 실행
         function handleAuthClick() {
             if (!currentUser) {
                 isSignUpMode = false;
@@ -247,7 +275,6 @@
             }
         }
 
-        // --- 이메일/비밀번호 인증 핸들러 ---
         function toggleAuthMode() {
             isSignUpMode = !isSignUpMode;
             setupAuthModal();
@@ -281,33 +308,25 @@
             if(password.length < 6) return alert("비밀번호는 최소 6자리 이상이어야 합니다.");
 
             if (isSignUpMode) {
-                // 이메일 회원가입
                 auth.createUserWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         alert("회원가입이 완료되었습니다!");
                         closeAllModals();
                         clearAuthInputs();
                     })
-                    .catch((error) => {
-                        alert("회원가입 실패: " + error.message);
-                    });
+                    .catch((error) => { alert("회원가입 실패: " + error.message); });
             } else {
-                // 이메일 로그인
                 auth.signInWithEmailAndPassword(email, password)
                     .then((userCredential) => {
                         alert("로그인 성공!");
                         closeAllModals();
                         clearAuthInputs();
                     })
-                    .catch((error) => {
-                        alert("로그인 실패: " + error.message);
-                    });
+                    .catch((error) => { alert("로그인 실패: " + error.message); });
             }
         }
 
-        function loginWithGoogle() {
-            auth.signInWithRedirect(provider);
-        }
+        function loginWithGoogle() { auth.signInWithRedirect(provider); }
 
         function clearAuthInputs() {
             document.getElementById('authEmail').value = "";
@@ -339,35 +358,72 @@
             balance -= amt; updateUI(); alert("출금 신청 완료!"); closeAllModals();
         }
 
-        // --- 1. SLOT ---
+        // --- 1. 3-SLOT ROULETTE ---
         function playSlot() {
             if(isPlaying || !isDataLoaded) return;
             const bet = parseInt(document.getElementById('slotBet').value);
-            if(bet > balance || bet <= 0) return alert("잔액 부족");
+            if(isNaN(bet) || bet > balance || bet <= 0) return alert("베팅금을 확인하세요.");
+
             isPlaying = true; balance -= bet; updateUI();
 
             const icons = ["🍒", "🔔", "💎", "⭐", "7"];
-            let cnt = 0;
-            const spin = setInterval(() => {
-                document.getElementById('reelDisp').innerText = icons[Math.floor(Math.random()*5)];
-                if(++cnt > 15) {
-                    clearInterval(spin);
-                    const r = Math.random() * 100;
-                    let resultIcon, multiplier, msg;
+            const r1 = document.getElementById('reel1');
+            const r2 = document.getElementById('reel2');
+            const r3 = document.getElementById('reel3');
 
-                    if (r < 3) { resultIcon = "7"; multiplier = 7; msg = "🎰 럭키세븐!! 7배 당첨!"; }
-                    else if (r < 10) { resultIcon = "⭐"; multiplier = 1.7; msg = "⭐ 별! 1.7배 당첨!"; }
-                    else if (r < 20) { resultIcon = "💎"; multiplier = 1.5; msg = "💎 다이아! 1.5배 당첨!"; }
-                    else if (r < 35) { resultIcon = "🔔"; multiplier = 1.2; msg = "🔔 종! 1.2배 당첨!"; }
-                    else { resultIcon = "🍒"; multiplier = 0; msg = "🍒 체리... 꽝입니다."; }
+            let count = 0;
+            const interval = setInterval(() => {
+                r1.innerText = icons[Math.floor(Math.random() * icons.length)];
+                r2.innerText = icons[Math.floor(Math.random() * icons.length)];
+                r3.innerText = icons[Math.floor(Math.random() * icons.length)];
+                count++;
 
-                    document.getElementById('reelDisp').innerText = resultIcon;
-                    const win = Math.floor(bet * multiplier);
-                    balance += win;
+                if(count > 20) {
+                    clearInterval(interval);
+
+                    // 각 릴별 개별 가중치 추첨
+                    const getRandomIcon = () => {
+                        const rnd = Math.random() * 100;
+                        if (rnd < 5) return "7";       // 5%
+                        if (rnd < 15) return "⭐";     // 10%
+                        if (rnd < 30) return "💎";     // 15%
+                        if (rnd < 55) return "🔔";     // 25%
+                        return "🍒";                   // 45%
+                    };
+
+                    const res1 = getRandomIcon();
+                    const res2 = getRandomIcon();
+                    const res3 = getRandomIcon();
+
+                    r1.innerText = res1;
+                    r2.innerText = res2;
+                    r3.innerText = res3;
+
+                    let multiplier = 0;
+                    let msg = "";
+
+                    // 결과 판정
+                    if (res1 === res2 && res2 === res3) {
+                        if (res1 === "7") { multiplier = 50; msg = "🎉 JACKPOT! 777 (50배)!!"; }
+                        else if (res1 === "⭐") { multiplier = 20; msg = "⭐ SUPER WIN! 별 3개 (20배)!"; }
+                        else if (res1 === "💎") { multiplier = 10; msg = "💎 BIG WIN! 다이아 3개 (10배)!"; }
+                        else if (res1 === "🔔") { multiplier = 5; msg = "🔔 WIN! 종 3개 (5배)!"; }
+                        else if (res1 === "🍒") { multiplier = 3; msg = "🍒 WIN! 체리 3개 (3배)!"; }
+                    } else if (res1 === res2 || res2 === res3 || res1 === res3) {
+                        multiplier = 1.5;
+                        msg = "✨ 2개 일치! (1.5배)";
+                    } else {
+                        multiplier = 0;
+                        msg = "❌ 꽝입니다. 다시 도전하세요!";
+                    }
+
+                    const winAmt = Math.floor(bet * multiplier);
+                    balance += winAmt;
                     document.getElementById('slotLog').innerText = msg;
-                    updateUI(); isPlaying = false;
+                    updateUI();
+                    isPlaying = false;
                 }
-            }, 60);
+            }, 50);
         }
 
         // --- 2. RACE ---
