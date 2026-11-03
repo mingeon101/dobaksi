@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>개박</title>
+    <title>개밥 미니게임 천국</title>
     <style>
         :root {
             --gold: #ffd700; --neon-blue: #00f3ff; --neon-pink: #ff0055;
@@ -149,7 +149,7 @@
         </div>
     </div>
 
-    <!-- 2. TARGET SHOOTING 게임 구역 (실물 움직이는 과녁 적용) -->
+    <!-- 2. TARGET SHOOTING 게임 구역 -->
     <div id="targetGame" class="game-container">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-weight:bold; font-size:0.9rem;">
             <div>탄약: <span id="ammoDisp" style="color:var(--neon-blue)">10 / 10</span></div>
@@ -261,17 +261,25 @@
         let currentUser = null; let isDataLoaded = false;
         let isSignUpMode = false;
 
+        // 닉네임 예외 처리 유틸리티 (TypeError 방지)
+        function getUserDisplayName(user) {
+            if (!user) return "PLAYER";
+            if (user.displayName) return user.displayName;
+            if (user.email && typeof user.email === 'string') return user.email.split('@')[0];
+            return "PLAYER";
+        }
+
         function updateUI(sync = true) {
             document.getElementById('totalBalance').innerText = isDataLoaded ? balance.toLocaleString() : "---";
             if(balance > highScore) { highScore = balance; document.getElementById('highScoreDisp').innerText = highScore.toLocaleString(); }
             if(sync && currentUser && isDataLoaded) { db.ref('users/' + currentUser.uid).update({ balance: balance }); }
         }
 
-        // --- 인증 상태 감지 ---
+        // --- 인증 상태 감지 (안전 검사 보완) ---
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
-                document.getElementById('userName').innerText = user.displayName || user.email.split('@')[0];
+                document.getElementById('userName').innerText = getUserDisplayName(user);
                 document.getElementById('userPhoto').src = user.photoURL || "https://www.gstatic.com/images/branding/product/2x/avatar_square_blue_120dp.png";
                 document.getElementById('userPhoto').style.display = "block";
                 document.getElementById('loginBtn').innerText = "Logout";
@@ -371,14 +379,14 @@
 
         function requestCharge(amt) {
             if(!currentUser) return alert("로그인 후 이용 가능합니다.");
-            db.ref('chargeRequests').push({ uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], amt, status: "pending", time: Date.now() });
+            db.ref('chargeRequests').push({ uid: currentUser.uid, name: getUserDisplayName(currentUser), amt, status: "pending", time: Date.now() });
             alert(amt.toLocaleString() + "P 충전 신청 완료!"); closeAllModals();
         }
 
         function requestWithdraw() {
             const amt = parseInt(document.getElementById('withdrawInput').value);
             if(isNaN(amt) || amt > balance || amt < 10000) return alert("금액을 확인하세요.");
-            db.ref('withdrawRequests').push({ uid: currentUser.uid, name: currentUser.displayName || currentUser.email.split('@')[0], amt, status: "pending", time: Date.now() });
+            db.ref('withdrawRequests').push({ uid: currentUser.uid, name: getUserDisplayName(currentUser), amt, status: "pending", time: Date.now() });
             balance -= amt; updateUI(); alert("출금 신청 완료!"); closeAllModals();
         }
 
@@ -412,7 +420,6 @@
                     if (jackpotRoll < 0.00001) {
                         res1 = "7"; res2 = "7"; res3 = "7";
                     } else {
-                        // 일반 추첨 (777 발생 방지)
                         const getRandomNonJackpotIcon = () => {
                             const rnd = Math.random() * 100;
                             if (rnd < 5) return "7";
@@ -436,10 +443,8 @@
                     let multiplier = 0;
                     let msg = "";
 
-                    // 체리 개수 카운트
                     const cherryCount = [res1, res2, res3].filter(icon => icon === "🍒").length;
 
-                    // 결과 판정
                     if (cherryCount === 3) {
                         multiplier = -6;
                         msg = "💀 체리 3개 폭탄! 베팅금의 6배 페널티 (-6배)";
@@ -462,7 +467,6 @@
                         msg = "❌ 꽝입니다. 다시 도전하세요!";
                     }
 
-                    // 정산 처리
                     if (multiplier < 0) {
                         const penaltyAmt = Math.floor(bet * Math.abs(multiplier));
                         balance = Math.max(0, balance - penaltyAmt);
@@ -478,7 +482,7 @@
             }, 50);
         }
 
-        // --- 2. TARGET SHOOTING (실물 과녁 10발 시스템) ---
+        // --- 2. TARGET SHOOTING ---
         let targetInterval = null;
         let targetPos = 50;
         let targetSpeed = 4;
