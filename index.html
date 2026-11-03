@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>개밥</title>
+    <title>개밥 미니게임 천국</title>
     <style>
         :root {
             --gold: #ffd700; --neon-blue: #00f3ff; --neon-pink: #ff0055;
@@ -51,24 +51,13 @@
 
         /* 3슬롯 룰렛 스타일 */
         .slot-display {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            background: #000;
-            border-radius: 15px;
-            height: 100px;
-            margin: 20px 0;
-            border: 2px solid #333;
-            padding: 0 10px;
+            display: flex; justify-content: space-around; align-items: center;
+            background: #000; border-radius: 15px; height: 100px; margin: 20px 0;
+            border: 2px solid #333; padding: 0 10px;
         }
         .slot-reel {
-            font-size: 3rem;
-            width: 30%;
-            height: 80px;
-            line-height: 80px;
-            background: #111;
-            border-radius: 10px;
-            border: 1px solid #333;
+            font-size: 3rem; width: 30%; height: 80px; line-height: 80px;
+            background: #111; border-radius: 10px; border: 1px solid #333;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
 
@@ -80,8 +69,6 @@
         /* 모달 스타일 */
         .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #222; padding: 30px; border-radius: 20px; border: 2px solid var(--neon-blue); z-index: 1000; width: 320px; text-align: center; box-sizing: border-box; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
-        
-        /* 인증 모달용 스타일 */
         .auth-input { width: 100%; margin-bottom: 10px; box-sizing: border-box; }
         .auth-toggle { font-size: 0.85rem; color: #aaa; margin-top: 10px; cursor: pointer; text-decoration: underline; }
     </style>
@@ -109,6 +96,7 @@
 
     <div class="tab-menu">
         <button id="tabSlot" class="tab-btn active" onclick="switchTab('slot')">🎰 3-SLOT</button>
+        <button id="tabTarget" class="tab-btn" onclick="switchTab('target')">🎯 SHOOT</button>
         <button id="tabRace" class="tab-btn" onclick="switchTab('race')">🏎️ RACE</button>
         <button id="tabGun" class="tab-btn" onclick="switchTab('gun')">🔫 GUN</button>
         <button id="tabBj" class="tab-btn" onclick="switchTab('bj')">🃏 BJ</button>
@@ -120,11 +108,9 @@
         <h3 id="authModalTitle" style="color:var(--neon-blue); margin-top:0;">로그인 / 회원가입</h3>
         <input type="email" id="authEmail" class="auth-input" placeholder="이메일 주소">
         <input type="password" id="authPassword" class="auth-input" placeholder="비밀번호">
-        
         <button class="main-btn btn-blue" id="emailAuthBtn" onclick="submitEmailAuth()" style="margin-top: 5px;">로그인하기</button>
         <button class="main-btn btn-purple" onclick="loginWithGoogle()" style="font-size:0.9rem;">구글로 계속하기</button>
         <button class="main-btn btn-grey" onclick="closeAllModals()">닫기</button>
-        
         <div id="authToggleText" class="auth-toggle" onclick="toggleAuthMode()">계정이 없으신가요? 회원가입</div>
     </div>
 
@@ -145,7 +131,7 @@
         <button class="main-btn btn-grey" onclick="closeAllModals()">취소</button>
     </div>
 
-    <!-- 3슬롯 룰렛 게임 구역 -->
+    <!-- 1. 3슬롯 룰렛 게임 구역 -->
     <div id="slotGame" class="game-container active">
         <div class="slot-display">
             <div class="slot-reel" id="reel1">🎰</div>
@@ -158,10 +144,45 @@
         </div>
         <button class="main-btn btn-purple" id="slotBtn" onclick="playSlot()">SPIN</button>
         <div class="log-box" id="slotLog">
-            777(50배), ⭐⭐⭐(20배), 💎💎💎(10배)<br>🔔🔔🔔(5배), 🍒🍒🍒(3배), 2개 일치(1.5배)
+            777(7777배), ⭐⭐⭐(50배/2개:25배), 💎💎💎(30배/2개:15배), 🔔🔔🔔(15배/2개:7.5배)<br>
+            기타 2개(3배) | <span style="color:var(--danger)">🍒🍒(-1.5배), 🍒🍒🍒(-6배)</span>
         </div>
     </div>
 
+    <!-- 2. TARGET SHOOTING 게임 구역 (실물 움직이는 과녁 적용) -->
+    <div id="targetGame" class="game-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-weight:bold; font-size:0.9rem;">
+            <div>탄약: <span id="ammoDisp" style="color:var(--neon-blue)">10 / 10</span></div>
+            <div>연속 적중: <span id="comboDisp" style="color:var(--gold)">0 콤보</span></div>
+            <div>현재 배율: <span id="multDisp" style="color:var(--neon-pink)">1.0x</span></div>
+        </div>
+
+        <div id="targetStage" style="position:relative; width:100%; height:180px; background:#080810; border-radius:15px; border:2px solid #333; overflow:hidden; margin-bottom:15px; cursor:crosshair;" onclick="shootTarget()">
+            <!-- 조준선 (Crosshair Line) -->
+            <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:2px; height:100%; background:rgba(0, 243, 255, 0.4); pointer-events:none; box-shadow:0 0 8px var(--neon-blue);"></div>
+            <div style="position:absolute; top:50%; left:0; transform:translateY(-50%); width:100%; height:1px; background:rgba(255, 255, 255, 0.1); pointer-events:none;"></div>
+
+            <!-- 움직이는 과녁 (Real Animated Target) -->
+            <div id="targetObj" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:54px; height:54px; border-radius:50%; background:#ff0033; border:3px solid #fff; box-shadow:0 0 15px rgba(255, 0, 51, 0.8); display:flex; align-items:center; justify-content:center; pointer-events:none; transition: left 0.03s linear;">
+                <div style="width:34px; height:34px; border-radius:50%; background:#fff; border:3px solid #ff0033; display:flex; align-items:center; justify-content:center;">
+                    <div style="width:14px; height:14px; border-radius:50%; background:#ff0033; box-shadow:0 0 5px #000;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <input type="number" id="targetBet" value="1000">
+            <button class="all-in-btn" onclick="allIn('targetBet')">ALL</button>
+        </div>
+
+        <button class="main-btn btn-blue" id="targetStartBtn" onclick="startTargetGame()">사격 시작 (10발)</button>
+        <div class="log-box" id="targetLog">
+            🎯 10발 사격! 중앙 청록색 조준선에 과녁 중심을 맞추세요!<br>
+            <small style="color:#aaa;">3발(1.5x) ➔ 5발(2.5x) ➔ 7발(4.0x) ➔ 10발(10.0x)</small>
+        </div>
+    </div>
+
+    <!-- 3. RACE 게임 구역 -->
     <div id="raceGame" class="game-container">
         <div style="background:#000; padding:10px; border-radius:10px; margin-bottom:15px;">
             <div style="height:35px; border-bottom:1px solid #222; position:relative;"><span id="c1" style="position:absolute; left:0; font-size:1.5rem; transition: 0.1s;">🚗</span></div>
@@ -181,6 +202,7 @@
         <div class="log-box" id="raceLog">우승 차량을 맞추면 3배!</div>
     </div>
 
+    <!-- 4. GUN 게임 구역 -->
     <div id="gunGame" class="game-container">
         <div id="gunMult" style="color:var(--gold); font-weight:bold; font-size: 1.2rem;">NEXT: 1.25x</div>
         <div style="font-size:3.5rem; margin:15px;" id="gunDisp">🔫</div>
@@ -193,6 +215,7 @@
         <div class="log-box" id="gunLog">생존 시 배당 누적!</div>
     </div>
 
+    <!-- 5. BLACKJACK 게임 구역 -->
     <div id="bjGame" class="game-container">
         <div class="bj-area">
             <div class="card-row" id="dealerCards"></div>
@@ -213,6 +236,7 @@
         <div class="log-box" id="bjLog">딜러를 이기면 2배!</div>
     </div>
 
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -381,19 +405,29 @@
                 if(count > 20) {
                     clearInterval(interval);
 
-                    // 각 릴별 개별 가중치 추첨
-                    const getRandomIcon = () => {
-                        const rnd = Math.random() * 100;
-                        if (rnd < 5) return "7";       // 5%
-                        if (rnd < 15) return "⭐";     // 10%
-                        if (rnd < 30) return "💎";     // 15%
-                        if (rnd < 55) return "🔔";     // 25%
-                        return "🍒";                   // 45%
-                    };
+                    let res1, res2, res3;
 
-                    const res1 = getRandomIcon();
-                    const res2 = getRandomIcon();
-                    const res3 = getRandomIcon();
+                    // 0.001% (1/100,000) 확률로 777 잭팟 확정 추첨
+                    const jackpotRoll = Math.random();
+                    if (jackpotRoll < 0.00001) {
+                        res1 = "7"; res2 = "7"; res3 = "7";
+                    } else {
+                        // 일반 추첨 (777 발생 방지)
+                        const getRandomNonJackpotIcon = () => {
+                            const rnd = Math.random() * 100;
+                            if (rnd < 5) return "7";
+                            if (rnd < 15) return "⭐";
+                            if (rnd < 30) return "💎";
+                            if (rnd < 55) return "🔔";
+                            return "🍒";
+                        };
+
+                        do {
+                            res1 = getRandomNonJackpotIcon();
+                            res2 = getRandomNonJackpotIcon();
+                            res3 = getRandomNonJackpotIcon();
+                        } while (res1 === "7" && res2 === "7" && res3 === "7");
+                    }
 
                     r1.innerText = res1;
                     r2.innerText = res2;
@@ -402,23 +436,41 @@
                     let multiplier = 0;
                     let msg = "";
 
+                    // 체리 개수 카운트
+                    const cherryCount = [res1, res2, res3].filter(icon => icon === "🍒").length;
+
                     // 결과 판정
-                    if (res1 === res2 && res2 === res3) {
-                        if (res1 === "7") { multiplier = 50; msg = "🎉 JACKPOT! 777 (50배)!!"; }
-                        else if (res1 === "⭐") { multiplier = 20; msg = "⭐ SUPER WIN! 별 3개 (20배)!"; }
-                        else if (res1 === "💎") { multiplier = 10; msg = "💎 BIG WIN! 다이아 3개 (10배)!"; }
-                        else if (res1 === "🔔") { multiplier = 5; msg = "🔔 WIN! 종 3개 (5배)!"; }
-                        else if (res1 === "🍒") { multiplier = 3; msg = "🍒 WIN! 체리 3개 (3배)!"; }
+                    if (cherryCount === 3) {
+                        multiplier = -6;
+                        msg = "💀 체리 3개 폭탄! 베팅금의 6배 페널티 (-6배)";
+                    } else if (cherryCount === 2) {
+                        multiplier = -1.5;
+                        msg = "⚠️ 체리 2개 감점! 베팅금의 1.5배 페널티 (-1.5배)";
+                    } else if (res1 === res2 && res2 === res3) {
+                        if (res1 === "7") { multiplier = 7777; msg = "🚨 ULTRA JACKPOT! 777 (7,777배)!! 🚨"; }
+                        else if (res1 === "⭐") { multiplier = 50; msg = "⭐ SUPER WIN! 별 3개 (50배)!"; }
+                        else if (res1 === "💎") { multiplier = 30; msg = "💎 BIG WIN! 다이아 3개 (30배)!"; }
+                        else if (res1 === "🔔") { multiplier = 15; msg = "🔔 WIN! 종 3개 (15배)!"; }
                     } else if (res1 === res2 || res2 === res3 || res1 === res3) {
-                        multiplier = 1.5;
-                        msg = "✨ 2개 일치! (1.5배)";
+                        const pairedIcon = (res1 === res2 || res1 === res3) ? res1 : res2;
+                        if (pairedIcon === "⭐") { multiplier = 25; msg = "⭐ 별 2개 일치! (25배)"; }
+                        else if (pairedIcon === "💎") { multiplier = 15; msg = "💎 다이아 2개 일치! (15배)"; }
+                        else if (pairedIcon === "🔔") { multiplier = 7.5; msg = "🔔 종 2개 일치! (7.5배)"; }
+                        else { multiplier = 3; msg = "✨ 2개 일치! (3배)"; }
                     } else {
                         multiplier = 0;
                         msg = "❌ 꽝입니다. 다시 도전하세요!";
                     }
 
-                    const winAmt = Math.floor(bet * multiplier);
-                    balance += winAmt;
+                    // 정산 처리
+                    if (multiplier < 0) {
+                        const penaltyAmt = Math.floor(bet * Math.abs(multiplier));
+                        balance = Math.max(0, balance - penaltyAmt);
+                    } else {
+                        const winAmt = Math.floor(bet * multiplier);
+                        balance += winAmt;
+                    }
+
                     document.getElementById('slotLog').innerText = msg;
                     updateUI();
                     isPlaying = false;
@@ -426,7 +478,135 @@
             }, 50);
         }
 
-        // --- 2. RACE ---
+        // --- 2. TARGET SHOOTING (실물 과녁 10발 시스템) ---
+        let targetInterval = null;
+        let targetPos = 50;
+        let targetSpeed = 4;
+        let targetDirection = 1;
+        let isTargetAiming = false;
+        let targetBetAmt = 0;
+
+        let remainingAmmo = 10;
+        let currentCombo = 0;
+        let totalMultiplier = 0;
+
+        function updateTargetStats() {
+            document.getElementById('ammoDisp').innerText = `${remainingAmmo} / 10`;
+            document.getElementById('comboDisp').innerText = `${currentCombo} 콤보`;
+            
+            let currentBonusMult = 1.0;
+            if (currentCombo >= 10) currentBonusMult = 10.0;
+            else if (currentCombo >= 7) currentBonusMult = 4.0;
+            else if (currentCombo >= 5) currentBonusMult = 2.5;
+            else if (currentCombo >= 3) currentBonusMult = 1.5;
+
+            document.getElementById('multDisp').innerText = `${currentBonusMult.toFixed(1)}x`;
+            return currentBonusMult;
+        }
+
+        function startTargetGame() {
+            if (isPlaying || !isDataLoaded) return;
+            targetBetAmt = parseInt(document.getElementById('targetBet').value);
+            if (isNaN(targetBetAmt) || targetBetAmt > balance || targetBetAmt <= 0) return alert("베팅금을 확인하세요.");
+
+            isPlaying = true;
+            balance -= targetBetAmt;
+            updateUI();
+
+            remainingAmmo = 10;
+            currentCombo = 0;
+            totalMultiplier = 0;
+            updateTargetStats();
+
+            document.getElementById('targetStartBtn').style.display = 'none';
+            document.getElementById('targetLog').innerText = "과녁이 움직입니다! 조준선에 과녁을 맞추세요!";
+
+            moveNextTarget();
+        }
+
+        function moveNextTarget() {
+            if (remainingAmmo <= 0) {
+                endTargetGame();
+                return;
+            }
+
+            isTargetAiming = true;
+            targetPos = Math.random() * 80 + 10;
+            targetSpeed = Math.floor(Math.random() * 2) + 4 + Math.floor(currentCombo * 0.5); 
+            targetDirection = Math.random() < 0.5 ? 1 : -1;
+
+            const targetObj = document.getElementById('targetObj');
+
+            if (targetInterval) clearInterval(targetInterval);
+            targetInterval = setInterval(() => {
+                targetPos += targetSpeed * targetDirection * 0.2;
+                if (targetPos >= 90) { targetPos = 90; targetDirection = -1; }
+                if (targetPos <= 10) { targetPos = 10; targetDirection = 1; }
+                targetObj.style.left = targetPos + "%";
+            }, 20);
+        }
+
+        function shootTarget() {
+            if (!isTargetAiming) return;
+
+            clearInterval(targetInterval);
+            isTargetAiming = false;
+            remainingAmmo--;
+
+            const centerPos = 50; 
+            const diff = Math.abs(targetPos - centerPos);
+
+            let isHit = false;
+            let hitBaseScore = 0;
+
+            if (diff <= 2.5) {
+                isHit = true;
+                hitBaseScore = 1.0;
+            } else if (diff <= 6.5) {
+                isHit = true;
+                hitBaseScore = 0.5;
+            }
+
+            if (isHit) {
+                currentCombo++;
+                const bonusMult = updateTargetStats();
+                const earnedMult = hitBaseScore * bonusMult;
+                totalMultiplier += earnedMult;
+
+                document.getElementById('targetLog').innerText = 
+                    `💥 BULLSEYE! (${currentCombo}연속!) +${earnedMult.toFixed(2)}x 누적 (남은 탄약: ${remainingAmmo}발)`;
+            } else {
+                currentCombo = 0;
+                updateTargetStats();
+                document.getElementById('targetLog').innerText = 
+                    `❌ MISSED! 콤보가 초기화되었습니다. (남은 탄약: ${remainingAmmo}발)`;
+            }
+
+            setTimeout(() => {
+                if (remainingAmmo > 0) {
+                    moveNextTarget();
+                } else {
+                    endTargetGame();
+                }
+            }, 350);
+        }
+
+        function endTargetGame() {
+            clearInterval(targetInterval);
+            isTargetAiming = false;
+            isPlaying = false;
+
+            const winAmt = Math.floor(targetBetAmt * totalMultiplier);
+            balance += winAmt;
+
+            document.getElementById('targetLog').innerText = 
+                `🏁 사격 종료! 총 배율: ${totalMultiplier.toFixed(2)}x ➔ ${winAmt.toLocaleString()}P 획득!`;
+            
+            document.getElementById('targetStartBtn').style.display = 'block';
+            updateUI();
+        }
+
+        // --- 3. RACE ---
         let carIdx = 0;
         function selectCar(n) { if(!isPlaying){ carIdx = n; document.querySelectorAll('.car-sel').forEach((b,i)=>b.style.background=(i+1===n)?'var(--neon-blue)':'#222'); } }
         function playRace() {
@@ -449,7 +629,7 @@
             }, 60);
         }
 
-        // --- 3. GUN ---
+        // --- 4. GUN ---
         let gR = 0, bullet = -1, gBet = 0;
         function playGun() {
             if(gR === 0) {
@@ -473,7 +653,7 @@
             document.getElementById('gunLog').innerText="안전하게 상금을 챙겼습니다!"; updateUI();
         }
 
-        // --- 4. BLACKJACK ---
+        // --- 5. BLACKJACK ---
         let deck = [], pHand = [], dHand = [], bBet = 0;
         function createDeck() { const s = ['♠','♥','♣','♦'], v = ['2','3','4','5','6','7','8','9','10','J','Q','K','A']; deck = []; for(let x of s) for(let y of v) deck.push({v:y, s:x}); deck.sort(()=>Math.random()-0.5); }
         function getScore(h) { let s = 0, a = 0; for(let c of h) { if(['J','Q','K'].includes(c.v)) s+=10; else if(c.v==='A') { s+=11; a++; } else s+=parseInt(c.v); } while(s>21 && a>0){ s-=10; a--; } return s; }
